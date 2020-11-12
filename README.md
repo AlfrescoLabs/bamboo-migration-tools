@@ -19,6 +19,18 @@ The scripts provided can be run in-place, just install dependencies via `pip`:
 Usage
 -----
 
+### Dump build configuration
+
+Use `export-plans.py` to run through all build plans on the Bamboo server and dump them to disk.
+Note that the resulting YAML files are dumped onto the *server* filesystem, and you will need to
+manually retrieve them yourself to use in the next step.
+
+    python3 export-plans.py
+
+In order to run this script, you should the credentials of an Bamboo admin user.
+
+### Export to Travis
+
 Use `bamboo-to-travis.py` to generate a `.travis.yml` equivalent for a Bamboo build plan.
 
 Note: this does not call the Bamboo API, instead it works off a local YAML file with the Bamboo

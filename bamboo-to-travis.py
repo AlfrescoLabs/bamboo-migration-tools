@@ -1,11 +1,11 @@
 import os
 import sys
 
-from configparser import ConfigParser
 from datetime import datetime
 from github import Github, UnknownObjectException, InputGitAuthor
 
 from lib.bamboo import LinkedRepositoriesList, configure_yaml_loader, parse_yml
+from lib.config import get_or_create as get_or_create_config
 from lib.travis import generate_yaml as generate_travis_yaml
 
 LINKED_REPOSITORIES_CSV_FILE = 'repositories.csv'
@@ -22,24 +22,12 @@ else:
 if len(sys.argv) > 2:
     output_file = sys.argv[2]
 
-def get_or_create_config(file_name):
-    config = ConfigParser()
-    read_result = config.read(file_name)
-    if not read_result:
-        git_name = input('Please enter your full name to be used for Git commits: ')
-        git_email = input('Please enter your email address to be used for Git commits: ')
-        github_org = input('Please enter the Github organisation ID: ')
-        github_token = input('Please enter your Github personal access token (must be authorized for the specified organisation: ')
-        config['github.com'] = {
-            'user.name': git_name,
-            'user.email': git_email,
-            'user.token': github_token,
-            'organization': github_org,
-        }
-        with open(file_name, 'w') as config_file:
-            config.write(config_file)
-        read_result = config.read(file_name)
-    return config
+GITHUB_CONFIG_FIELDS = (
+    ('user.name', 'Please enter your full name to be used for Git commits: '),
+    ('user.email', 'Please enter your email address to be used for Git commits: '),
+    ('user.token', 'Please enter the Github organisation ID: '),
+    ('organization', 'Please enter your Github personal access token (must be authorized for the specified organisation: '),
+)
 
 def process_file(file_path):
     with open(file_path, 'r') as bamboo_yml_file:
@@ -60,9 +48,9 @@ def header_yaml(plan):
     return header_lines
 
 try:
-    config = get_or_create_config(CONFIG_FILE)
-    github_org = config['github.com']['organization']
-    gh = Github(github_org)
+    config = get_or_create_config(CONFIG_FILE, 'github.com', GITHUB_CONFIG_FIELDS)
+    github_org = config['organization']
+    gh = Github(config['user.token'])
     linked_repositories = LinkedRepositoriesList(LINKED_REPOSITORIES_CSV_FILE)
     configure_yaml_loader()
 
@@ -93,7 +81,7 @@ try:
         plan = process_file(input_file)
         output_lines = header_yaml(plan) + generate_travis_yaml(plan, plan_context)
         yml_content = '\n'.join(output_lines) + '\n'
-        committer = InputGitAuthor(name=config['github.com']['user.name'], email=config['github.com']['user.email'])
+        committer = InputGitAuthor(name=config['user.name'], email=config['user.email'])
         if len(sys.argv) > 2:
             branch_name = 'dev-travis-migration'
             pr_title = 'Add .travis.yml'
