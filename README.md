@@ -9,8 +9,8 @@ Requirements
 
 Python 3.5+ with Pip
 
-Installtion
------------
+Installation
+------------
 
 The scripts provided can be run in-place, just install dependencies via `pip`:
 
