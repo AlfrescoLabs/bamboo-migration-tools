@@ -16,6 +16,13 @@ The scripts provided can be run in-place, just install dependencies via `pip`:
 
     pip install -r requirments.txt
 
+For best results it is recommended to install the dependencies into a dedicated virtual
+environment using `venv`:
+
+    python3 -m venv .venv
+    source .venv/bin/activate
+    pip install -r requirments.txt
+
 Usage
 -----
 
