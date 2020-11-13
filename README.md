@@ -19,6 +19,16 @@ The scripts provided can be run in-place, just install dependencies via `pip`:
 Usage
 -----
 
+### Dump plan and branch information
+
+Use `plans.py` and `branches.py` to run through all plans and all branches of plans, respectively,
+and to dump information on them in CSV format to `stdout`, e.g.
+
+    python3 plans.py > all_plans.csv
+    python branches.py > all_branches.csv
+
+A new row is added in the CSV output for each plan or branch found.
+
 ### Dump build configuration
 
 Use `export-plans.py` to run through all build plans on the Bamboo server and dump them to disk.
