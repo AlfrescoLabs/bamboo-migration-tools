@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import csv
-import requests
 import sys
 
 from lib.config import get_or_create as get_or_create_config
