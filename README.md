@@ -28,11 +28,12 @@ Usage
 
 ### Dump plan and branch information
 
-Use `plans.py` and `branches.py` to run through all plans and all branches of plans, respectively,
-and to dump information on them in CSV format to `stdout`, e.g.
+Use `plans.py`, `branches.py` and `results.py` to run through all plans, all branches of plans and
+all build runs, respectively, and to dump information on them in CSV format to `stdout`, e.g.
 
     python3 plans.py > all_plans.csv
     python branches.py > all_branches.csv
+    python results.py > all_results.csv
 
 A new row is added in the CSV output for each plan or branch found.
 
