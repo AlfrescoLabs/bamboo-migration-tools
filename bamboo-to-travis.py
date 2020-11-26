@@ -4,7 +4,7 @@ import re
 import sys
 
 from datetime import datetime
-from github import Github, UnknownObjectException, InputGitAuthor
+from github import Github, GithubException, UnknownObjectException, InputGitAuthor
 
 from lib.bamboo import LinkedRepositoriesList, configure_yaml_loader, parse_yml
 from lib.config import get_or_create as get_or_create_config
@@ -19,7 +19,7 @@ run_datetime = datetime.now()
 
 
 if len(sys.argv) > 1:
-    optlist, args = getopt.getopt(sys.argv[1:], '', ['base-branch=', 'branch=', 'commit-title=', 'commit-desc=', 'pr-title='])
+    optlist, args = getopt.getopt(sys.argv[1:], '', ['base-branch=', 'branch=', 'commit-title=', 'commit-desc=', 'update', 'pr', 'pr-title='])
     opts = dict(optlist)
 else:
     opts, args = {}, []
@@ -92,7 +92,8 @@ try:
         if len(args) > 1:
             branch_name = opts.get('--branch', 'dev-travis-migration')
             pr_title = opts.get('--pr-title', 'Add .travis.yml')
-            commit_message = opts.get('--commit-title', 'Add .travis.yml')
+            default_commit_message = 'Add .travis.yml' if '--update' not in opts else 'Update .travis.yml'
+            commit_message = opts.get('--commit-title', default_commit_message)
             if '--commit-desc' in opts:
                 commit_message += '\n\n%s' % (opts.get('--commit-desc'))
             git_project_ref = args[1]
@@ -102,15 +103,32 @@ try:
                 exit(1)
             org_name = git_match.group(1)
             repo_name = git_match.group(2)
+            file_name = '.travis.yml'
             try:
                 repo = gh.get_organization(org_name).get_repo(repo_name)
                 base_branch_name = opts.get('--base-branch', 'master')
                 master_branch = repo.get_branch(base_branch_name)
-                new_branch = repo.create_git_ref(ref='refs/heads/' + branch_name, sha=master_branch.commit.sha)
-                yml_file = repo.create_file('.travis.yml', message=commit_message, content=yml_content, branch=branch_name, committer=committer, author=committer)
-                new_branch.edit(yml_file.sha)
-                pr = repo.create_pull(pr_title, '', base=base_branch_name, head=branch_name, draft=True)
-                print('Opened pull request %s' % (pr.html_url))
+                try:
+                    new_branch = repo.get_git_ref('heads/' + branch_name)
+                except UnknownObjectException:
+                    ref_name = 'refs/heads/' + branch_name
+                    new_branch = repo.create_git_ref(ref=ref_name, sha=master_branch.commit.sha)
+                try:
+                    yml_file = repo.create_file(file_name, message=commit_message, content=yml_content, branch=branch_name, committer=committer, author=committer)
+                    print('Created file %s on branch %s' % (file_name, new_branch.url))
+                except GithubException as file_exception:
+                    if file_exception.status == 422: # File exists
+                        if '--update' in opts:
+                            file_blob = repo.get_contents(file_name, ref='heads/' + branch_name)
+                            yml_file = repo.update_file(file_name, message=commit_message, content=yml_content, sha=file_blob.sha, branch=branch_name, committer=committer, author=committer)
+                            print('Updated file %s on branch %s' % (file_name, new_branch.url))
+                        else:
+                            print('File %s already exists, must specify --update to update it' % (file_name))
+                            exit(1)
+                new_branch.edit(yml_file['commit'].sha)
+                if 'pr' in opts:
+                    pr = repo.create_pull(pr_title, '', base=base_branch_name, head=branch_name, draft=True)
+                    print('Opened pull request %s' % (pr.html_url))
             except UnknownObjectException:
                 print('Unable to find repository %s, check it exists and your user account has access' % (git_project_ref))
         else:

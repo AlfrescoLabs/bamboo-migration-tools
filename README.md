@@ -74,6 +74,10 @@ default or any other branch specified using `--base-branch`.
 
     python3 bamboo-to-travis.py --base-branch=master --commit-title='New Travis build' --commit-body='Refs JIRA-11' DEV-PLAN1.yaml MyGithubOrg/repo1
 
+If the file `.travis.yml` already exists on the branch, you can update it using `--update`. If
+this is not specified but the file already exists, the script will avoid overwriting it and log
+a message to the console.
+
 Using `--pr`, you can also open a draft pull request from the branch, optionally supplying a
 title via `--pr-title`.
 
