@@ -51,10 +51,16 @@ In order to run this script, you should the credentials of an Bamboo admin user.
 
 Use `bamboo-to-travis.py` to generate a `.travis.yml` equivalent for a Bamboo build plan.
 
-Note: this does not call the Bamboo API, instead it works off a local YAML file with the Bamboo
-build configation inside. Such files can be generated from Bamboo via the REST API but access
-to the Bamboo server is then required in order to pull the YAML file(s) down manually, which you
-must do before running the script.
+Notes:
+
+* this does not call the Bamboo API, instead it works off a local YAML file with the Bamboo
+  build configation inside. Such files can be generated from Bamboo via the REST API but access
+  to the Bamboo server is then required in order to pull the YAML file(s) down manually, which you
+  must do before running the script.
+* linked repositories defined at the global level in Bamboo do not have their details dumped in
+  the Bamboo YAML file, so if the plan uses linked repositories then you must have a mapping of
+  `[repository name], [repository URL]` in the file `repositories.csv` in the same directory
+  where you run the script, for all linked repositories referenced
 
 To echo the `.travis.yml` file content to the console for checking, run the script with the name
 of the Bamboo YAML file, e.g.
@@ -62,8 +68,12 @@ of the Bamboo YAML file, e.g.
     python3 bamboo-to-travis.py DEV-PLAN1.yaml
 
 The script is also capable of pushing the generated file to a Github repository, optionally
-providing the ID of a JIRA ID to reference in the commit body. The file is pushed to a new branch
-named `dev-travis-migration`, which itself is branched off `master`, and a draft pull request is
-opened using this new branch.
+providing a commit title, body. The file is pushed to a new branch named `dev-travis-migration` or
+whatever custom branch name specified via `--branch`, which itself is branched off `master` by
+default or any other branch specified using `--base-branch`.
 
-    python3 bamboo-to-travis.py DEV-PLAN1.yaml MyGithubOrg/repo1 JIRA-11
+    python3 bamboo-to-travis.py --base-branch=master --commit-title='New Travis build' --commit-body='Refs JIRA-11' DEV-PLAN1.yaml MyGithubOrg/repo1
+
+Using `--pr`, you can also open a draft pull request from the branch, optionally supplying a
+title via `--pr-title`.
+

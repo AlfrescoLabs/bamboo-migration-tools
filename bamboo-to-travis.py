@@ -1,4 +1,6 @@
+import getopt
 import os
+import re
 import sys
 
 from datetime import datetime
@@ -15,12 +17,17 @@ input_dir = None
 input_file = None
 run_datetime = datetime.now()
 
+
 if len(sys.argv) > 1:
-    input_file = sys.argv[1]
+    optlist, args = getopt.getopt(sys.argv[1:], '', ['base-branch=', 'branch=', 'commit-title=', 'commit-desc=', 'pr-title='])
+    opts = dict(optlist)
+else:
+    opts, args = {}, []
+
+if len(args) > 0:
+    input_file = args[0]
 else:
     input_dir = 'plans'
-if len(sys.argv) > 2:
-    output_file = sys.argv[2]
 
 GITHUB_CONFIG_FIELDS = (
     ('user.name', 'Please enter your full name to be used for Git commits: '),
@@ -82,21 +89,29 @@ try:
         output_lines = header_yaml(plan) + generate_travis_yaml(plan, plan_context)
         yml_content = '\n'.join(output_lines) + '\n'
         committer = InputGitAuthor(name=config['user.name'], email=config['user.email'])
-        if len(sys.argv) > 2:
-            branch_name = 'dev-travis-migration'
-            pr_title = 'Add .travis.yml'
-            commit_message = 'Add .travis.yml'
-            if len(sys.argv) > 3:
-                commit_message += '\n\nRefs %s' % (sys.argv[3])
-            git_project = sys.argv[2]
-            org_name, repo_name = git_project.split('/')
-            repo = gh.get_organization(org_name).get_repo(repo_name)
-            base_branch_name = 'master'
-            master_branch = repo.get_branch(base_branch_name)
-            repo.create_git_ref(ref='refs/heads/' + branch_name, sha=master_branch.commit.sha)
-            yml_file = repo.create_file('.travis.yml', message=commit_message, content=yml_content, branch=branch_name, committer=committer, author=committer)
-            pr = repo.create_pull(pr_title, '', base=base_branch_name, head=branch_name, draft=True)
-            print('Opened pull request %s' % (pr.html_url))
+        if len(args) > 1:
+            branch_name = opts.get('--branch', 'dev-travis-migration')
+            pr_title = opts.get('--pr-title', 'Add .travis.yml')
+            commit_message = opts.get('--commit-title', 'Add .travis.yml')
+            if '--commit-desc' in opts:
+                commit_message += '\n\n%s' % (opts.get('--commit-desc'))
+            git_project_ref = args[1]
+            git_match = re.match('(?:https://github.com)?/?([\w_-]+)/([\w_-]+)', git_project_ref)
+            if not git_match:
+                print('Unable to find Github project %s' % (git_project_ref))
+                exit(1)
+            org_name = git_match.group(1)
+            repo_name = git_match.group(2)
+            try:
+                repo = gh.get_organization(org_name).get_repo(repo_name)
+                base_branch_name = opts.get('--base-branch', 'master')
+                master_branch = repo.get_branch(base_branch_name)
+                repo.create_git_ref(ref='refs/heads/' + branch_name, sha=master_branch.commit.sha)
+                yml_file = repo.create_file('.travis.yml', message=commit_message, content=yml_content, branch=branch_name, committer=committer, author=committer)
+                pr = repo.create_pull(pr_title, '', base=base_branch_name, head=branch_name, draft=True)
+                print('Opened pull request %s' % (pr.html_url))
+            except UnknownObjectException:
+                print('Unable to find repository %s, check it exists and your user account has access' % (git_project_ref))
         else:
             print(yml_content)
 
