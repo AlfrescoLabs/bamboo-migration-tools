@@ -106,8 +106,9 @@ try:
                 repo = gh.get_organization(org_name).get_repo(repo_name)
                 base_branch_name = opts.get('--base-branch', 'master')
                 master_branch = repo.get_branch(base_branch_name)
-                repo.create_git_ref(ref='refs/heads/' + branch_name, sha=master_branch.commit.sha)
+                new_branch = repo.create_git_ref(ref='refs/heads/' + branch_name, sha=master_branch.commit.sha)
                 yml_file = repo.create_file('.travis.yml', message=commit_message, content=yml_content, branch=branch_name, committer=committer, author=committer)
+                new_branch.edit(yml_file.sha)
                 pr = repo.create_pull(pr_title, '', base=base_branch_name, head=branch_name, draft=True)
                 print('Opened pull request %s' % (pr.html_url))
             except UnknownObjectException:
