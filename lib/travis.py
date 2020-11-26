@@ -112,6 +112,7 @@ def jobs_yaml_lines(source_plan, context=None):
 
 def generate_yaml(plan, context=None):
     output_lines = []
+    dist_os = 'xenial'
     job_output_lines, job_languages, job_services, job_addons = jobs_yaml_lines(plan, context)
     if len(job_languages):
         language_names = [ language[0] for language in job_languages ]
@@ -124,6 +125,12 @@ def generate_yaml(plan, context=None):
                     if len(mentioned_jdks) > 1:
                         print('WARNING: Multiple JDK versions spefified: %s' % (mentioned_jdks))
                     travis_jdk = dict(jvm_versions).get(sorted(list(mentioned_jdks))[-1])
+                    if travis_jdk == 'oraclejdk7':
+                        print('WARNING: oraclejdk7 is no longer available, using oraclejdk8 instead')
+                        travis_jdk = 'oraclejdk8'
+                        dist_os = 'trusty'
+                    if travis_jdk == 'oraclejdk8':
+                        dist_os = 'trusty'
                     output_lines.append('jdk:')
                     output_lines.append('  - %s' % (travis_jdk))
                     output_lines.append('')
@@ -136,7 +143,7 @@ def generate_yaml(plan, context=None):
                     output_lines.append('  - %s' % (travis_node_js))
                     output_lines.append('')
                 break
-    output_lines.append('dist: xenial')
+    output_lines.append('dist: %s' % (dist_os))
     output_lines.append('')
     if len(job_services):
         output_lines.append('services:')
