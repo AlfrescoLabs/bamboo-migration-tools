@@ -98,7 +98,7 @@ def jobs_yaml_lines(source_plan, context=None):
                     if artifact['location']:
                         artifact_path = artifact['location'] + '/' + artifact_path
                     artifacts_cmds.append('artifacts upload %s' % (artifact_path,))
-                group = CommandGroup(artifacts_cmds)
+                group = CommandGroup(artifacts_cmds, 'Push artifacts to S3', job['enabled'])
                 group.replace_cmd_parameters(source_plan, context)
                 all_travis_jobs['after_script'] = all_travis_jobs.get('after_script', []) + [group]
 
